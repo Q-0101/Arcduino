@@ -1,50 +1,60 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Water Sensor Dashboard</title>
+  <title>Water Sensor Graph</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { font-family: Arial; padding: 20px; }
     h1 { color: #333; }
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background-color: #f2f2f2; }
+    #average { font-size: 18px; margin-bottom: 20px; }
   </style>
 </head>
 <body>
-  <h1>Water Sensor Dashboard</h1>
-  <table>
-    <thead>
-      <tr>
-        <th>Time</th>
-        <th>Water Level</th>
-      </tr>
-    </thead>
-    <tbody id="dataBody"></tbody>
-  </table>
+  <h1>Water Sensor Graph</h1>
+  <div id="average">Average: 0</div>
+  <canvas id="waterChart" width="800" height="400"></canvas>
 
   <script>
+    const ctx = document.getElementById('waterChart').getContext('2d');
+    const waterChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Water Level',
+          data: [],
+          borderColor: 'blue',
+          fill: false,
+          tension: 0.2
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          x: { display: true, title: { display: true, text: 'Time' } },
+          y: { display: true, title: { display: true, text: 'Level' } }
+        }
+      }
+    });
+
     async function fetchData() {
       const res = await fetch('/api/water-level');
       const data = await res.json();
 
-      const tbody = document.getElementById('dataBody');
-      tbody.innerHTML = '';
+      const labels = data.map(d => new Date(d.timestamp).toLocaleTimeString());
+      const values = data.map(d => d.level);
 
-      data.slice().reverse().forEach(entry => {
-        const row = document.createElement('tr');
-        const timeCell = document.createElement('td');
-        const levelCell = document.createElement('td');
+      waterChart.data.labels = labels;
+      waterChart.data.datasets[0].data = values;
+      waterChart.update();
 
-        timeCell.textContent = new Date(entry.timestamp).toLocaleTimeString();
-        levelCell.textContent = entry.level;
-
-        row.appendChild(timeCell);
-        row.appendChild(levelCell);
-        tbody.appendChild(row);
-      });
+      if (values.length > 0) {
+        const avg = (values.reduce((a,b) => a+b, 0)/values.length).toFixed(2);
+        document.getElementById('average').textContent = `Average: ${avg}`;
+      }
     }
 
-    setInterval(fetchData, 1000); // refresh every second
+    setInterval(fetchData, 1000);
     fetchData();
   </script>
 </body>
