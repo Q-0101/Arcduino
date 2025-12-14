@@ -23,7 +23,7 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      height: 600px; /* same as big chart */
+      height: 600px; /* match big chart height */
     }
 
     .side-charts > div {
@@ -46,10 +46,16 @@
       font-size: 14px;
       margin-bottom: 5px;
     }
+
+    .controls { text-align: center; margin-bottom: 10px; }
+    .controls button { padding: 5px 10px; font-size: 14px; }
   </style>
 </head>
 <body>
   <h1>Water Sensor Dashboard</h1>
+  <div class="controls">
+    <button onclick="resetView()">Reset View</button>
+  </div>
   <div class="container">
     <!-- Big chart -->
     <div class="main-chart">
@@ -58,26 +64,11 @@
 
     <!-- Side small charts -->
     <div class="side-charts">
-      <div>
-        <div class="chart-title">1 Day Avg</div>
-        <canvas id="chart1Day"></canvas>
-      </div>
-      <div>
-        <div class="chart-title">3 Days Avg</div>
-        <canvas id="chart3Days"></canvas>
-      </div>
-      <div>
-        <div class="chart-title">1 Week Avg</div>
-        <canvas id="chart1Week"></canvas>
-      </div>
-      <div>
-        <div class="chart-title">1 Month Avg</div>
-        <canvas id="chart1Month"></canvas>
-      </div>
-      <div>
-        <div class="chart-title">1 Year Avg</div>
-        <canvas id="chart1Year"></canvas>
-      </div>
+      <div><div class="chart-title">1 Day Avg</div><canvas id="chart1Day"></canvas></div>
+      <div><div class="chart-title">3 Days Avg</div><canvas id="chart3Days"></canvas></div>
+      <div><div class="chart-title">1 Week Avg</div><canvas id="chart1Week"></canvas></div>
+      <div><div class="chart-title">1 Month Avg</div><canvas id="chart1Month"></canvas></div>
+      <div><div class="chart-title">1 Year Avg</div><canvas id="chart1Year"></canvas></div>
     </div>
   </div>
 
@@ -89,6 +80,8 @@
 
     // Big chart
     const mainCtx = document.getElementById('waterChart').getContext('2d');
+    let userPanned = false;
+
     const waterChart = new Chart(mainCtx, {
       type: 'line',
       data: { labels: [], datasets: [{ label: 'Water Level', data: [], borderColor: 'blue', fill: false, tension: 0.2 }] },
@@ -105,12 +98,35 @@
         },
         plugins: {
           zoom: {
-            pan: { enabled: true, mode: 'x' },
-            zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
+            pan: {
+              enabled: true,
+              mode: 'x',
+              onPan: () => { userPanned = true; } // detect manual pan
+            },
+            zoom: {
+              wheel: { enabled: true },
+              pinch: { enabled: true },
+              mode: 'x'
+            }
           }
         }
       }
     });
+
+    function scrollToLatest() {
+      if(userPanned) return; // don't auto-scroll if user panned
+      const xScale = waterChart.scales.x;
+      const max = xScale.max;
+      const range = max - xScale.min;
+      waterChart.options.scales.x.min = max - range;
+      waterChart.options.scales.x.max = max;
+      waterChart.update('none');
+    }
+
+    function resetView() {
+      userPanned = false;
+      waterChart.resetZoom();
+    }
 
     // Side charts
     function createSmallChart(canvasId) {
@@ -144,6 +160,7 @@
       waterChart.data.labels = labels;
       waterChart.data.datasets[0].data = values;
       waterChart.update();
+      scrollToLatest(); // TradingView style
 
       const now = new Date();
       function filterByDays(days) {
