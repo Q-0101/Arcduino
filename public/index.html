@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Water Sensor Dashboard</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    h1 { color: #333; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background-color: #f2f2f2; }
+  </style>
+</head>
+<body>
+  <h1>Water Sensor Dashboard</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Water Level</th>
+      </tr>
+    </thead>
+    <tbody id="dataBody"></tbody>
+  </table>
+
+  <script>
+    async function fetchData() {
+      const res = await fetch('/api/water-level');
+      const data = await res.json();
+
+      const tbody = document.getElementById('dataBody');
+      tbody.innerHTML = '';
+
+      data.slice().reverse().forEach(entry => {
+        const row = document.createElement('tr');
+        const timeCell = document.createElement('td');
+        const levelCell = document.createElement('td');
+
+        timeCell.textContent = new Date(entry.timestamp).toLocaleTimeString();
+        levelCell.textContent = entry.level;
+
+        row.appendChild(timeCell);
+        row.appendChild(levelCell);
+        tbody.appendChild(row);
+      });
+    }
+
+    setInterval(fetchData, 1000); // refresh every second
+    fetchData();
+  </script>
+</body>
+</html>
