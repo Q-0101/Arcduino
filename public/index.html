@@ -1,42 +1,93 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Water Sensor Graph</title>
+  <title>Water Sensor Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: Arial; padding: 20px; }
-    h1 { color: #333; }
-    #average { font-size: 18px; margin-bottom: 20px; }
+    body { font-family: Arial; margin: 20px; }
+    h1 { color: #333; text-align: center; }
+    .container {
+      display: flex;
+      gap: 20px;
+    }
+    .main-chart {
+      flex: 3;
+    }
+    .side-charts {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    canvas { background: #f9f9f9; padding: 10px; border-radius: 8px; }
+    .chart-title { text-align: center; font-size: 14px; margin-bottom: 5px; }
   </style>
 </head>
 <body>
-  <h1>Water Sensor Graph</h1>
-  <div id="average">Average: 0</div>
-  <canvas id="waterChart" width="800" height="400"></canvas>
+  <h1>Water Sensor Dashboard</h1>
+  <div class="container">
+    <!-- Big chart -->
+    <div class="main-chart">
+      <canvas id="waterChart" width="800" height="400"></canvas>
+    </div>
+
+    <!-- Side small charts -->
+    <div class="side-charts">
+      <div>
+        <div class="chart-title">1 Day Avg</div>
+        <canvas id="chart1Day"></canvas>
+      </div>
+      <div>
+        <div class="chart-title">3 Days Avg</div>
+        <canvas id="chart3Days"></canvas>
+      </div>
+      <div>
+        <div class="chart-title">1 Week Avg</div>
+        <canvas id="chart1Week"></canvas>
+      </div>
+      <div>
+        <div class="chart-title">1 Month Avg</div>
+        <canvas id="chart1Month"></canvas>
+      </div>
+      <div>
+        <div class="chart-title">1 Year Avg</div>
+        <canvas id="chart1Year"></canvas>
+      </div>
+    </div>
+  </div>
 
   <script>
-    const ctx = document.getElementById('waterChart').getContext('2d');
-    const waterChart = new Chart(ctx, {
+    // Helper function to calculate average
+    function avg(data) {
+      if (!data.length) return 0;
+      return (data.reduce((a,b)=>a+b,0)/data.length).toFixed(2);
+    }
+
+    // Main chart
+    const mainCtx = document.getElementById('waterChart').getContext('2d');
+    const waterChart = new Chart(mainCtx, {
       type: 'line',
-      data: {
-        labels: [],
-        datasets: [{
-          label: 'Water Level',
-          data: [],
-          borderColor: 'blue',
-          fill: false,
-          tension: 0.2
-        }]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          x: { display: true, title: { display: true, text: 'Time' } },
-          y: { display: true, title: { display: true, text: 'Level' } }
-        }
-      }
+      data: { labels: [], datasets: [{ label: 'Water Level', data: [], borderColor: 'blue', fill: false, tension: 0.2 }] },
+      options: { responsive:true, scales:{ x:{ title:{display:true,text:'Time'} }, y:{ title:{display:true,text:'Level'} } } }
     });
 
+    // Side charts (small)
+    function createSmallChart(canvasId) {
+      const ctx = document.getElementById(canvasId).getContext('2d');
+      return new Chart(ctx, {
+        type: 'line',
+        data: { labels: [], datasets: [{ label: 'Avg Level', data: [], borderColor: 'green', fill:false }] },
+        options: { responsive:true, plugins:{legend:{display:false}}, scales:{ x:{display:false}, y:{display:true} } }
+      });
+    }
+
+    const chart1Day = createSmallChart('chart1Day');
+    const chart3Days = createSmallChart('chart3Days');
+    const chart1Week = createSmallChart('chart1Week');
+    const chart1Month = createSmallChart('chart1Month');
+    const chart1Year = createSmallChart('chart1Year');
+
+    // Fetch data from server and update charts
     async function fetchData() {
       const res = await fetch('/api/water-level');
       const data = await res.json();
@@ -44,14 +95,26 @@
       const labels = data.map(d => new Date(d.timestamp).toLocaleTimeString());
       const values = data.map(d => d.level);
 
+      // Update main chart
       waterChart.data.labels = labels;
       waterChart.data.datasets[0].data = values;
       waterChart.update();
 
-      if (values.length > 0) {
-        const avg = (values.reduce((a,b) => a+b, 0)/values.length).toFixed(2);
-        document.getElementById('average').textContent = `Average: ${avg}`;
+      // Compute averages for side charts
+      const now = new Date();
+      function filterByDays(days) {
+        return values.filter((v,i) => {
+          const ts = new Date(data[i].timestamp);
+          return (now - ts)/(1000*60*60*24) <= days;
+        });
       }
+
+      // For simplicity, store one value (average) per chart
+      chart1Day.data.labels = ['1 Day']; chart1Day.data.datasets[0].data = [avg(filterByDays(1))]; chart1Day.update();
+      chart3Days.data.labels = ['3 Days']; chart3Days.data.datasets[0].data = [avg(filterByDays(3))]; chart3Days.update();
+      chart1Week.data.labels = ['1 Week']; chart1Week.data.datasets[0].data = [avg(filterByDays(7))]; chart1Week.update();
+      chart1Month.data.labels = ['1 Month']; chart1Month.data.datasets[0].data = [avg(filterByDays(30))]; chart1Month.update();
+      chart1Year.data.labels = ['1 Year']; chart1Year.data.datasets[0].data = [avg(filterByDays(365))]; chart1Year.update();
     }
 
     setInterval(fetchData, 1000);
