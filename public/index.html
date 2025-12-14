@@ -10,8 +10,9 @@
     h1 { color: #333; text-align: center; }
     .container { display: flex; gap: 20px; }
     .main-chart { flex: 3; }
-    .side-charts { flex: 1; display: flex; flex-direction: column; gap: 20px; }
-    canvas { background: #f9f9f9; padding: 10px; border-radius: 8px; }
+    .side-charts { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+    .side-charts > div { flex: 1; display: flex; flex-direction: column; }
+    canvas { background: #f9f9f9; padding: 10px; border-radius: 8px; width: 100%; }
     .chart-title { text-align: center; font-size: 14px; margin-bottom: 5px; }
   </style>
 </head>
@@ -20,33 +21,33 @@
   <div class="container">
     <!-- Big chart -->
     <div class="main-chart">
-      <canvas id="waterChart" width="800" height="400"></canvas>
+      <canvas id="waterChart" height="600"></canvas>
     </div>
 
     <!-- Side small charts -->
     <div class="side-charts">
-      <div><div class="chart-title">1 Day Avg</div><canvas id="chart1Day"></canvas></div>
-      <div><div class="chart-title">3 Days Avg</div><canvas id="chart3Days"></canvas></div>
-      <div><div class="chart-title">1 Week Avg</div><canvas id="chart1Week"></canvas></div>
-      <div><div class="chart-title">1 Month Avg</div><canvas id="chart1Month"></canvas></div>
-      <div><div class="chart-title">1 Year Avg</div><canvas id="chart1Year"></canvas></div>
+      <div><div class="chart-title">1 Day Avg</div><canvas id="chart1Day" height="120"></canvas></div>
+      <div><div class="chart-title">3 Days Avg</div><canvas id="chart3Days" height="120"></canvas></div>
+      <div><div class="chart-title">1 Week Avg</div><canvas id="chart1Week" height="120"></canvas></div>
+      <div><div class="chart-title">1 Month Avg</div><canvas id="chart1Month" height="120"></canvas></div>
+      <div><div class="chart-title">1 Year Avg</div><canvas id="chart1Year" height="120"></canvas></div>
     </div>
   </div>
 
   <script>
-    // Helper function for averages
     function avg(data) {
       if (!data.length) return 0;
       return (data.reduce((a,b)=>a+b,0)/data.length).toFixed(2);
     }
 
-    // Main scrollable chart
+    // Big chart
     const mainCtx = document.getElementById('waterChart').getContext('2d');
     const waterChart = new Chart(mainCtx, {
       type: 'line',
       data: { labels: [], datasets: [{ label: 'Water Level', data: [], borderColor: 'blue', fill: false, tension: 0.2 }] },
       options: {
         responsive:true,
+        maintainAspectRatio: false,
         scales: {
           x: {
             type:'time',
@@ -57,20 +58,20 @@
         },
         plugins: {
           zoom: {
-            pan: { enabled:true, mode:'x' },
-            zoom: { wheel:{enabled:true}, pinch:{enabled:true}, mode:'x' }
+            pan: { enabled:true, mode:'x', overScaleMode: 'x' }, // horizontal only
+            zoom: { wheel:{enabled:true}, pinch:{enabled:true}, mode:'x' } // horizontal only
           }
         }
       }
     });
 
-    // Side charts
+    // Side small charts
     function createSmallChart(canvasId) {
       const ctx = document.getElementById(canvasId).getContext('2d');
       return new Chart(ctx, {
         type:'line',
         data:{ labels:[], datasets:[{label:'Avg Level', data:[], borderColor:'green', fill:false}] },
-        options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ x:{display:false}, y:{display:true} } }
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{display:false}, y:{display:true} } }
       });
     }
 
@@ -80,7 +81,6 @@
     const chart1Month = createSmallChart('chart1Month');
     const chart1Year = createSmallChart('chart1Year');
 
-    // Fetch data and update charts
     async function fetchData() {
       const res = await fetch('/api/water-level');
       const data = await res.json();
@@ -88,7 +88,7 @@
       const labels = data.map(d => new Date(d.timestamp));
       const values = data.map(d => d.level);
 
-      // Update main chart
+      // Update big chart
       waterChart.data.labels = labels;
       waterChart.data.datasets[0].data = values;
       waterChart.update();
@@ -101,7 +101,7 @@
         });
       }
 
-      // Update side charts (average per period)
+      // Update side charts averages
       chart1Day.data.labels = ['1 Day']; chart1Day.data.datasets[0].data = [avg(filterByDays(1))]; chart1Day.update();
       chart3Days.data.labels = ['3 Days']; chart3Days.data.datasets[0].data = [avg(filterByDays(3))]; chart3Days.update();
       chart1Week.data.labels = ['1 Week']; chart1Week.data.datasets[0].data = [avg(filterByDays(7))]; chart1Week.update();
