@@ -30,7 +30,7 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      min-height: 0; /* prevents vertical growth */
+      min-height: 0;
     }
 
     canvas {
@@ -84,15 +84,20 @@
 
     const waterChart = new Chart(mainCtx, {
       type: 'line',
-      data: { labels: [], datasets: [{ label: 'Water Level', data: [], borderColor: 'blue', fill: false, tension: 0.2 }] },
+      data: { 
+        labels: [], 
+        datasets: [{ label: 'Water Level', data: [], borderColor: 'blue', fill: false, tension: 0 }]
+      },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: false,
         scales: {
           x: {
             type: 'time',
             title: { display: true, text: 'Time' },
-            time: { tooltipFormat: 'HH:mm:ss', unit: 'minute' }
+            time: { tooltipFormat: 'HH:mm:ss', unit: 'minute' },
+            ticks: { maxRotation: 0 },
           },
           y: { title: { display: true, text: 'Level' } }
         },
@@ -101,7 +106,7 @@
             pan: {
               enabled: true,
               mode: 'x',
-              onPan: () => { userPanned = true; } // detect manual pan
+              onPanStart: () => { userPanned = true; }
             },
             zoom: {
               wheel: { enabled: true },
@@ -114,12 +119,15 @@
     });
 
     function scrollToLatest() {
-      if(userPanned) return; // don't auto-scroll if user panned
+      if(userPanned || !waterChart.data.labels.length) return;
+
+      const lastIndex = waterChart.data.labels.length - 1;
+      const lastTime = waterChart.data.labels[lastIndex];
       const xScale = waterChart.scales.x;
-      const max = xScale.max;
-      const range = max - xScale.min;
-      waterChart.options.scales.x.min = max - range;
-      waterChart.options.scales.x.max = max;
+      const visibleRange = xScale.max - xScale.min;
+
+      xScale.options.min = new Date(lastTime - visibleRange);
+      xScale.options.max = lastTime;
       waterChart.update('none');
     }
 
@@ -160,7 +168,7 @@
       waterChart.data.labels = labels;
       waterChart.data.datasets[0].data = values;
       waterChart.update();
-      scrollToLatest(); // TradingView style
+      scrollToLatest();
 
       const now = new Date();
       function filterByDays(days) {
