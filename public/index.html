@@ -105,6 +105,7 @@ async function requestNotificationPermission() {
 
   if (Notification.permission === "default") {
     await Notification.requestPermission();
+    <button onclick="requestNotificationPermission()">Enable Alerts</button>
   }
 }
 
