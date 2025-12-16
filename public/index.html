@@ -244,6 +244,24 @@
 
   return new Chart(ctx, {
     type: 'line',
+    data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'Water Level',
+            data: [],
+            borderColor: '#4cafeb',
+            fill: false,
+            tension: 0,
+            pointRadius: 3,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#4cafeb',
+            pointHoverBackgroundColor: 'white',
+            pointBorderColor: '#4cafeb',
+            pointHoverBorderColor: '#4cafeb'
+          },
+        ]
+    },
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -327,14 +345,8 @@
         data.filter(x => (now - new Date(x.timestamp)) / 86400000 <= d)
             .map(x => x.level);
 
-      chart1Day.data.datasets[0].data = [avg(filterByDays(1))]; chart1Day.update();
-      chart3Days.data.datasets[0].data = [avg(filterByDays(3))]; chart3Days.update();
-      chart1Week.data.datasets[0].data = [avg(filterByDays(7))]; chart1Week.update();
-      chart1Month.data.datasets[0].data = [avg(filterByDays(30))]; chart1Month.update();
-      chart1Year.data.datasets[0].data = [avg(filterByDays(365))]; chart1Year.update();
-
       /* 🔔 ALERT CHECK */
-      const latest = recent[recent.length - 1];
+      const latest = data[data.length - 1];
       if (!latest) return;
 
       if (latest.level > ALERT_LEVEL) {
