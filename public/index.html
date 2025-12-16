@@ -318,7 +318,6 @@
   });
 }
 
-
     const chart1Day = createVerticalChart('chart1Day');
     const chart1Week = createVerticalChart('chart1Week');
     const chart1Month = createVerticalChart('chart1Month');
@@ -326,9 +325,8 @@
 
     async function fetchData() {
      const res = await fetch('/api/water-level');
-  const data = await res.json();
+     const data = await res.json();
 
-  // Update main chart
   waterChart.data.labels = data.map(d => new Date(d.timestamp));
   waterChart.data.datasets[0].data = data.map(d => d.level);
   waterChart.update();
@@ -336,8 +334,8 @@
   // Update vertical charts in real time
   updateVerticalChartRealtime(chart1Day, data, 'hour');
   updateVerticalChartRealtime(chart1Week, data, 'hour');
-  updateVerticalChartRealtime(chart1Month, data, 'daily');
-  updateVerticalChartRealtime(chart1Year, data, 'daily');
+  updateVerticalChartRealtime(chart1Month, data, 'day');
+  updateVerticalChartRealtime(chart1Year, data, 'day');
 
 
       const now = new Date();
@@ -362,59 +360,10 @@
     }
 
     function updateVerticalChartRealtime(chart, data, interval = 'hour') {
-  const now = new Date();
-
-  // Determine the start of the interval
-  let start;
-  if (interval === 'hour') {
-    start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0);
-  } else if (interval === 'day') {
-    start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  }
-
-  // Filter data within current interval
-  const bucketData = data.filter(d => new Date(d.timestamp) >= start);
-
-  // Compute average
-  const avgValue = bucketData.length
-    ? bucketData.reduce((sum, x) => sum + x.level, 0) / bucketData.length
-    : 0;
-
-  // Only add a new point when the **minute changes**
-  const lastLabel = chart.data.labels[chart.data.labels.length - 1];
-  const lastMinute = lastLabel ? new Date(lastLabel).getMinutes() : null;
-
-  if (lastMinute !== now.getMinutes()) {
-    // append new point
-    chart.data.labels.push(now);
-    chart.data.datasets[0].data.push(avgValue);
+    chart.data.labels = data.map(d => new Date(d.timestamp));
+    chart.data.datasets[0].data = data.map(d => d.level);
     chart.update();
-  }
 }
-
-
-function computeCurrentBucketAverage(data, interval = 'hour') {
-  const now = new Date();
-
-  // Determine start of current interval
-  let start;
-  if (interval === 'hour') {
-    start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0);
-  } else if (interval === 'day') {
-    start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  }
-
-  // Filter only data within current interval
-  const bucketData = data.filter(d => new Date(d.timestamp) >= start);
-
-  // Compute average
-  const avgValue = bucketData.length
-    ? bucketData.reduce((sum, x) => sum + x.level, 0) / bucketData.length
-    : 0;
-
-  return avgValue.toFixed(2);
-}
-
 
     setInterval(fetchData, 1000)
     fetchData();
