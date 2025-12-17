@@ -306,7 +306,7 @@
         }
       }
     },
-    plugins: options.threshold ? [{
+    plugins: [{
       id: 'thresholdLine',
       afterDraw: chart => {
         const yValue = ALERT_LEVEL;
@@ -323,7 +323,7 @@
         ctx.stroke();
         ctx.restore();
       }
-    }] : []
+    }]  
   });
 }
 
