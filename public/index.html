@@ -7,12 +7,11 @@
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
   <style>
-    /* TradingView Dark Mode Style */
     body {
       font-family: Arial;
       margin: 20px;
-      background-color: #131722; /* dark background */
-      color: #e0e0e0;           /* light text */
+      background-color: #131722;
+      color: #e0e0e0;          
     }
 
     h1 {
@@ -48,11 +47,11 @@
       color: #bbbbbb;
     }
 
-    /* Container for main and side charts */
+    
     .container { 
       display: flex; 
       gap: 20px; 
-      align-items: flex-start; /* container top aligned */
+      align-items: flex-start;
     }
 
     .main-chart { 
@@ -62,26 +61,26 @@
     }
 
     .side-charts {
-    position: absolute;   /* take it out of normal flow */
-    top: 20px;            /* same as body margin or header bottom */
-    right: 20px;          /* distance from the right edge */
+    position: absolute;
+    top: 20px;           
+    right: 20px;         
     display: flex;
     flex-direction: column;
-    gap: 40px;            /* spacing between small charts */
+    gap: 40px;          
     }
 
 
-    /* Small charts alignment */
+   
     .side-charts > div {
-      height: 135px; /* fixed small chart height */
+      height: 135px; 
       width: 230px;
       display: flex;
       flex-direction: column;
-      margin-top: auto; /* push charts upward to align bottoms */
+      margin-top: auto; 
     }
 
     canvas {
-      background: #1e2330; /* chart background darker than page */
+      background: #1e2330; 
       padding: 10px;
       border-radius: 8px;
       width: 100%;
@@ -100,7 +99,6 @@
 
   <h1>Water Sensor Dashboard</h1>
 
-  <!-- 🔔 Notification controls -->
   <div class="top-bar">
     <button onclick="requestNotificationPermission()">🔔 Enable Alerts</button>
     <div class="status" id="notifStatus">Notifications: unknown</div>
@@ -120,9 +118,6 @@
   </div>
 
   <script>
-    /* ===========================
-       NOTIFICATION LOGIC
-    ============================ */
     const ALERT_LEVEL = 500;
     let notified = false;
     const notifStatus = document.getElementById("notifStatus");
@@ -143,12 +138,8 @@
       await Notification.requestPermission();
       updateNotifStatus();
     }
+   updateNotifStatus();
 
-    updateNotifStatus();
-
-    /* ===========================
-       CHART LOGIC
-    ============================ */
     function avg(data) {
       if (!data.length) return 0;
       return (data.reduce((a, b) => a + b, 0) / data.length).toFixed(2);
@@ -176,7 +167,7 @@
           },
           {
             label: 'Threshold',
-            data: [], // empty; used only for legend
+            data: [],
             borderColor: 'red',
             borderDash: [6,4],
             fill: false,
@@ -210,19 +201,19 @@
             type: 'time',
             title: { display: true, text: 'Time', color: '#ffffff' },
             ticks: { color: '#cccccc' },
-            grid: { color: '#1e2330', drawTicks: false } // vertical lines removed
+            grid: { color: '#1e2330', drawTicks: false }
           },
           y: {
             title: { display: true, text: 'Level', color: '#ffffff' },
             ticks: { color: '#cccccc' },
-            grid: { color: '#2a2e3b' } // horizontal lines only
+            grid: { color: '#2a2e3b' }
           }
         }
       },
       plugins: [{
         id: 'thresholdLine',
         afterDraw: chart => {
-          const yValue = ALERT_LEVEL; // 500
+          const yValue = ALERT_LEVEL;
           const yScale = chart.scales.y;
           const ctx = chart.ctx;
 
@@ -262,7 +253,7 @@
           },
           {
             label: 'Threshold',
-            data: [], // empty; used only for legend
+            data: [],
             borderColor: 'red',
             borderDash: [6,4],
             fill: false,
@@ -350,7 +341,6 @@
         data.filter(x => (now - new Date(x.timestamp)) / 86400000 <= d)
             .map(x => x.level);
 
-      /* 🔔 ALERT CHECK */
       const latest = data[data.length - 1];
       if (!latest) return;
 
@@ -367,8 +357,7 @@
     }
 
     function updateTimeAggregatedChart(chart, rawData, mode = 'hourly') {
-    // Step 1: Group data by selected mode
-    const aggregatedData = {}; // { key: [values] }
+    const aggregatedData = {};
 
     rawData.forEach(d => {
         const date = new Date(d.timestamp);
@@ -395,7 +384,6 @@
         aggregatedData[key].push(d.level);
     });
 
-    // Step 2: Compute averages
     const labels = [];
     const dataPoints = [];
 
@@ -403,15 +391,13 @@
         const values = aggregatedData[key];
         const avg = values.reduce((a,b) => a + b, 0) / values.length;
 
-        // For hourly mode, convert key back to Date object for Chart.js time scale
         if (mode === 'hourly') labels.push(new Date(key));
-        else if (mode === 'daily') labels.push(new Date(key)); // also works with time axis
-        else labels.push(key); // monthly and yearly can remain as strings
+        else if (mode === 'daily') labels.push(new Date(key));
+        else labels.push(key);
 
         dataPoints.push(avg);
     });
 
-    // Step 3: Update chart
     chart.data.labels = labels;
     chart.data.datasets[0].data = dataPoints;
     chart.update();
